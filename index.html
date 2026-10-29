@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClassFish – Gamified Recitation Picker</title>
+  <meta name="description" content="A gamified classroom recitation picker with an ocean canvas, fish for each student, and a hook mechanic to randomly select students." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Full-screen Canvas -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="glass-panel">
+    <div id="sidebar-header">
+      <h1 id="app-title">🐠 ClassFish</h1>
+      <p id="app-subtitle">Recitation Picker</p>
+    </div>
+
+    <!-- Tank Selector -->
+    <section class="sidebar-section">
+      <label class="section-label" for="tankSelect">🪣 Active Tank</label>
+      <div class="row-group">
+        <select id="tankSelect" class="glass-input">
+          <option value="Lily">Tank Lily</option>
+          <option value="Orchid">Tank Orchid</option>
+        </select>
+        <button id="addTankBtn" class="icon-btn" title="Add new tank">＋</button>
+      </div>
+    </section>
+
+    <!-- Student Input -->
+    <section class="sidebar-section">
+      <label class="section-label" for="studentInput">📋 Student Roster</label>
+      <textarea
+        id="studentInput"
+        class="glass-input"
+        placeholder="Paste student names here&#10;(one per line)"
+        rows="5"
+      ></textarea>
+      <button id="saveTankBtn" class="btn-primary">💾 Save Tank</button>
+    </section>
+
+    <!-- Student List -->
+    <section class="sidebar-section" id="studentListSection">
+      <label class="section-label">🐟 Fish in Tank
+        <span id="studentCount" class="badge">0</span>
+      </label>
+      <ul id="studentList" class="student-list"></ul>
+    </section>
+
+    <!-- Controls -->
+    <section class="sidebar-section controls-section">
+      <label class="section-label">⚙️ Controls</label>
+
+      <label class="toggle-row" for="soundToggle">
+        <span id="soundLabel">🔊 Sound & Music</span>
+        <input type="checkbox" id="soundToggle" checked />
+        <span class="toggle-switch"></span>
+      </label>
+
+      <label class="toggle-row" for="showNames">
+        <span>Show Names on Fish</span>
+        <input type="checkbox" id="showNames" checked />
+        <span class="toggle-switch"></span>
+      </label>
+
+      <div class="slider-row">
+        <span>🔍 Zoom</span>
+        <input type="range" id="zoomSlider" min="1" max="2.5" step="0.05" value="1" />
+        <span id="zoomValue">1.0×</span>
+      </div>
+
+      <div class="slider-row">
+        <span>🐟 Swim</span>
+        <input type="range" id="fishSpeedSlider" min="1" max="10" step="1" value="4" />
+        <span id="fishSpeedValue">4</span>
+      </div>
+
+      <div class="slider-row">
+        <span>💨 Dodge</span>
+        <input type="range" id="dodgeSpeedSlider" min="1" max="10" step="1" value="4" />
+        <span id="dodgeSpeedValue">4</span>
+      </div>
+
+      <div class="slider-row">
+        <span>🎣 Swing</span>
+        <input type="range" id="swingSpeedSlider" min="1" max="10" step="1" value="4" />
+        <span id="swingSpeedValue">4</span>
+      </div>
+
+      <label class="toggle-row" for="autoPan">
+        <span>🤖 Auto-Pan Base</span>
+        <input type="checkbox" id="autoPan" />
+        <span class="toggle-switch"></span>
+      </label>
+
+      <div id="autoPanControls" class="slider-row hidden">
+        <span>🚀 Speed</span>
+        <input type="range" id="autoPanSpeedSlider" min="1" max="10" step="1" value="3" />
+        <span id="autoPanSpeedValue">3</span>
+      </div>
+    </section>
+
+    <!-- Action Buttons -->
+    <section class="sidebar-section">
+      <button id="shuffleBtn" class="btn-secondary">🌊 Shuffle / Scare</button>
+    </section>
+  </aside>
+
+  <!-- CONTROL BAR TOGGLE -->
+  <button id="controlBarToggleBtn" class="control-bar-toggle">⌨️ Hide Controls</button>
+
+  <!-- CONTROL BAR -->
+  <div id="controlBar" class="glass-panel">
+    <span id="controlHint">
+      <kbd>A</kbd>/<kbd>D</kbd> or <kbd>◀</kbd>/<kbd>▶</kbd> — Move Base &nbsp;|&nbsp;
+      <kbd>Space</kbd> or <kbd>Click</kbd> — Fire Hook &nbsp;|&nbsp;
+      <kbd>M</kbd> — Sound
+    </span>
+    <div id="catchStats">
+      <span>Caught: <strong id="caughtCount">0</strong></span>
+      <span>Remaining: <strong id="remainingCount">0</strong></span>
+    </div>
+  </div>
+
+  <!-- LOADING SCREEN -->
+  <div id="loadingScreen">
+    <div id="loadingContent">
+      <div id="loadingSpinner"></div>
+      <p>Loading ocean assets…</p>
+    </div>
+  </div>
+
+  <!-- CATCH MODAL -->
+  <div id="catchModal" class="modal-overlay hidden">
+    <div id="catchModalContent" class="glass-panel modal-panel catch-modal-panel">
+      <div id="modalFishPreview"></div>
+      <h2 id="modalTitle">You caught…</h2>
+      <h1 id="modalName">Student Name</h1>
+      <div id="modalButtons">
+        <button id="modalHookAgainBtn" class="btn-primary">🎣 Hook Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD TANK MODAL -->
+  <div id="addTankModal" class="modal-overlay hidden">
+    <div id="addTankContent" class="glass-panel modal-panel">
+      <h2>🪣 New Tank</h2>
+      <p>Enter a name for the new tank:</p>
+      <input type="text" id="newTankName" class="glass-input" placeholder="e.g. Tank Coral" maxlength="30" />
+      <div id="modalButtons">
+        <button id="confirmAddTank" class="btn-primary">Create Tank</button>
+        <button id="cancelAddTank" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
