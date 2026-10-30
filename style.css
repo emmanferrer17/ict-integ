@@ -160,11 +160,17 @@ select.glass-input { cursor: pointer; appearance: none; }
 
 .row-group {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: stretch;
 }
 
-.row-group select { flex: 1; }
+.row-group select {
+  flex: 1;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
 
 /* ── Buttons ── */
 button {
@@ -204,16 +210,31 @@ button:active { transform: scale(0.96); }
 .btn-danger:hover { filter: brightness(1.1); }
 
 .icon-btn {
-  background: rgba(0,212,255,0.2);
+  background: rgba(0,212,255,0.18);
   border: 1px solid var(--accent);
   color: var(--accent);
-  width: 40px;
+  width: 36px;
+  height: 38px;
   padding: 0;
-  font-size: 1.2rem;
+  font-size: 1.05rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   border-radius: var(--radius-sm);
 }
 .icon-btn:hover { background: rgba(0,212,255,0.35); }
+
+.icon-btn-danger {
+  background: rgba(255, 77, 109, 0.18);
+  border-color: rgba(255, 77, 109, 0.55);
+  color: #ff85a1;
+}
+.icon-btn-danger:hover {
+  background: rgba(255, 77, 109, 0.38);
+  border-color: var(--danger);
+  color: #fff;
+}
 
 /* ── Student List ── */
 .student-list {
@@ -511,14 +532,16 @@ kbd {
   object-fit: contain;
 }
 
-#modalButtons {
+#modalButtons,
+.modal-buttons {
   display: flex;
   gap: 12px;
   width: 100%;
   margin-top: 8px;
 }
 
-#modalButtons button { flex: 1; }
+#modalButtons button,
+.modal-buttons button { flex: 1; }
 
 /* ── Enlarged Celebratory Catch Modal ── */
 .catch-modal-panel {
