@@ -68,10 +68,23 @@ const modalName = document.getElementById('modalName');
 const modalHookBtn = document.getElementById('modalHookAgainBtn');
 const modalFishPreview = document.getElementById('modalFishPreview');
 
+const renameTankBtn = document.getElementById('renameTankBtn');
+const deleteTankBtn = document.getElementById('deleteTankBtn');
+
 const addTankModal = document.getElementById('addTankModal');
 const newTankName = document.getElementById('newTankName');
 const confirmAddTank = document.getElementById('confirmAddTank');
 const cancelAddTank = document.getElementById('cancelAddTank');
+
+const renameTankModal = document.getElementById('renameTankModal');
+const renameTankName = document.getElementById('renameTankName');
+const confirmRenameTank = document.getElementById('confirmRenameTank');
+const cancelRenameTank = document.getElementById('cancelRenameTank');
+
+const deleteTankModal = document.getElementById('deleteTankModal');
+const deleteTankMessage = document.getElementById('deleteTankMessage');
+const confirmDeleteTank = document.getElementById('confirmDeleteTank');
+const cancelDeleteTank = document.getElementById('cancelDeleteTank');
 
 const fishSpeedSlider = document.getElementById('fishSpeedSlider');
 const fishSpeedValue = document.getElementById('fishSpeedValue');
@@ -713,12 +726,13 @@ function loadFromStorage() {
     tankData = raw ? JSON.parse(raw) : {};
   } catch { tankData = {}; }
 
-  // Ensure defaults
-  if (!tankData['Lily']) tankData['Lily'] = [];
-  if (!tankData['Orchid']) tankData['Orchid'] = [];
+  // Ensure defaults only if storage is empty
+  if (!tankData || Object.keys(tankData).length === 0) {
+    tankData = { 'Lily': [], 'Orchid': [] };
+  }
 
   const saved = localStorage.getItem(LS_ACTIVE_KEY);
-  activeTank = saved || 'Lily';
+  activeTank = (saved && tankData[saved]) ? saved : Object.keys(tankData)[0] || 'Lily';
 
   try {
     caughtTotal = parseInt(localStorage.getItem(LS_CAUGHT_KEY) || '0', 10);
@@ -2033,6 +2047,18 @@ function gameLoop(now) {
 // ─────────────────────────────────────────────
 // Keyboard
 document.addEventListener('keydown', e => {
+  // Escape closes any active dialog/modal even if typing in an input
+  if (e.key === 'Escape') {
+    if (addTankModal) addTankModal.classList.add('hidden');
+    if (renameTankModal) renameTankModal.classList.add('hidden');
+    if (deleteTankModal) deleteTankModal.classList.add('hidden');
+  }
+
+  // Ignore keyboard shortcuts when typing in inputs or textareas
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT' || e.target.isContentEditable)) {
+    return;
+  }
+
   if (e.code === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
   if (e.code === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
   if (e.code === 'Space') {
@@ -2143,7 +2169,7 @@ addTankBtn.addEventListener('click', () => {
   playClickSound();
   newTankName.value = '';
   addTankModal.classList.remove('hidden');
-  newTankName.focus();
+  setTimeout(() => newTankName.focus(), 50);
 });
 
 confirmAddTank.addEventListener('click', () => {
@@ -2152,15 +2178,11 @@ confirmAddTank.addEventListener('click', () => {
   if (!name) return;
   if (!tankData[name]) tankData[name] = [];
 
-  // Add to selector
-  const opt = document.createElement('option');
-  opt.value = name;
-  opt.textContent = `Tank ${name}`;
-  tankSelect.appendChild(opt);
-
   addTankModal.classList.add('hidden');
-  loadTank(name);
+  activeTank = name;
   saveToStorage();
+  rebuildTankSelector();
+  loadTank(name);
 });
 
 cancelAddTank.addEventListener('click', () => {
@@ -2174,6 +2196,106 @@ addTankModal.addEventListener('click', e => {
 
 newTankName.addEventListener('keydown', e => {
   if (e.key === 'Enter') confirmAddTank.click();
+});
+
+// Rename tank button
+renameTankBtn.addEventListener('click', () => {
+  playClickSound();
+  renameTankName.value = activeTank;
+  renameTankModal.classList.remove('hidden');
+  setTimeout(() => {
+    renameTankName.focus();
+    renameTankName.select();
+  }, 50);
+});
+
+confirmRenameTank.addEventListener('click', () => {
+  playClickSound();
+  const newName = renameTankName.value.trim();
+  if (!newName) return;
+  if (newName === activeTank) {
+    renameTankModal.classList.add('hidden');
+    return;
+  }
+
+  if (tankData[newName]) {
+    alert(`A tank named "${newName}" already exists!`);
+    return;
+  }
+
+  // Preserve key order while renaming the tank key
+  const students = tankData[activeTank] || [];
+  const updatedData = {};
+  Object.keys(tankData).forEach(key => {
+    if (key === activeTank) {
+      updatedData[newName] = students;
+    } else {
+      updatedData[key] = tankData[key];
+    }
+  });
+  tankData = updatedData;
+  activeTank = newName;
+
+  saveToStorage();
+  rebuildTankSelector();
+  loadTank(newName);
+  renameTankModal.classList.add('hidden');
+});
+
+cancelRenameTank.addEventListener('click', () => {
+  playClickSound();
+  renameTankModal.classList.add('hidden');
+});
+
+renameTankModal.addEventListener('click', e => {
+  if (e.target === renameTankModal) renameTankModal.classList.add('hidden');
+});
+
+renameTankName.addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmRenameTank.click();
+});
+
+// Delete tank button
+deleteTankBtn.addEventListener('click', () => {
+  playClickSound();
+  const tankKeys = Object.keys(tankData);
+  if (tankKeys.length <= 1) {
+    deleteTankMessage.innerHTML = `⚠️ You cannot delete <strong>Tank ${activeTank}</strong> because at least one tank must remain.`;
+    confirmDeleteTank.style.display = 'none';
+    cancelDeleteTank.textContent = 'Close';
+  } else {
+    const count = (tankData[activeTank] || []).length;
+    deleteTankMessage.innerHTML = `Are you sure you want to delete <strong>Tank ${activeTank}</strong>?<br><span style="font-size:0.85rem;color:var(--text-muted);margin-top:6px;display:inline-block;">This will permanently remove ${count} fish item${count === 1 ? '' : 's'}.</span>`;
+    confirmDeleteTank.style.display = '';
+    confirmDeleteTank.textContent = 'Delete Tank';
+    cancelDeleteTank.textContent = 'Cancel';
+  }
+  deleteTankModal.classList.remove('hidden');
+});
+
+confirmDeleteTank.addEventListener('click', () => {
+  playClickSound();
+  const tankKeys = Object.keys(tankData);
+  if (tankKeys.length <= 1) return;
+
+  delete tankData[activeTank];
+  const remaining = Object.keys(tankData);
+  activeTank = remaining[0] || 'Lily';
+  if (!tankData[activeTank]) tankData[activeTank] = [];
+
+  saveToStorage();
+  rebuildTankSelector();
+  loadTank(activeTank);
+  deleteTankModal.classList.add('hidden');
+});
+
+cancelDeleteTank.addEventListener('click', () => {
+  playClickSound();
+  deleteTankModal.classList.add('hidden');
+});
+
+deleteTankModal.addEventListener('click', e => {
+  if (e.target === deleteTankModal) deleteTankModal.classList.add('hidden');
 });
 
 // Save tank
